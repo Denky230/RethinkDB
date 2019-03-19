@@ -11,6 +11,7 @@ import com.rethinkdb.RethinkDB;
 import com.rethinkdb.net.Connection;
 import com.rethinkdb.net.Cursor;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 
 import java.util.HashMap;
 import java.util.List;
@@ -77,7 +78,17 @@ public class DAO implements DAOInterface {
         return incident;
     }
     @Override public List<Incident> selectAllIncidents() {
-        return r.table("incident").run(c);
+        List<Incident> incidents = new ArrayList<>();
+
+        // Parse each Incident found + add to list
+        Cursor cursor = r.table("incident").run(c);
+        cursor.forEach((i) -> {
+            Map<String, Object> map = (Map<String, Object>) i;
+            Incident incident = incidentFromMap(map);
+            incidents.add(incident);
+        });
+
+        return incidents;
     }
     @Override public void insertIncident(Incident i) {
         r.table("incident").insert(r.array(
