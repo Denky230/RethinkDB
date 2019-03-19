@@ -1,9 +1,9 @@
 
 package com.mycompany.rethinkdb.persistence;
 
-import com.mycompany.rethinkdb.model.Empleado;
-import com.mycompany.rethinkdb.model.Evento;
-import com.mycompany.rethinkdb.model.Incidencia;
+import com.mycompany.rethinkdb.model.Worker;
+import com.mycompany.rethinkdb.model.Event;
+import com.mycompany.rethinkdb.model.Incident;
 import com.mycompany.rethinkdb.model.RankingTO;
 import java.util.List;
 
@@ -14,34 +14,26 @@ import java.util.List;
 public interface DAOInterface {
 
     // Método para insertar un nuevo empleado.
-    public void insertEmpleado(Empleado e);
-
+    public void insertWorker(Worker e);
     // Método para validar el login de un empleado.
-    public boolean loginEmpleado(String user, String pass);
-
+    public boolean loginWorker(String user, String pass);
     // Método para modificar el perfil de un empleado.
-    public void updateEmpleado(Empleado e);
-
+    public void updateWorker(Worker e);
     // Método para eliminar un empleado.
-    public void removeEmpleado(Empleado e);
+    public void removeWorker(Worker e);
 
-    // Obtener una Incidencia a partir de su Id.
-    public Incidencia getIncidenciaById(int id);
-
+    // Obtener una Incident a partir de su Id.
+    public Incident getIncidentById(int id);
     // Obtener una lista de todas las incidencias
-    public List<Incidencia> selectAllIncidencias();
-
+    public List<Incident> selectAllIncidents();
     // Insertar una incidencia a partir de un objeto incidencia
-    public void insertIncidencia(Incidencia i);
-
+    public void insertIncident(Incident i);
     // Obtener la lista de incidencias con destino un determinado
     // empleado, a partir de un objeto empleado.
-    public List<Incidencia> getIncidenciaByDestino(Empleado e);
-
+    public List<Incident> getIncidentByDestination(Worker e);
     // Obtener la lista de incidencias con origen un determinado
     // empleado, a partir de un objeto empleado.
-    public List<Incidencia> getIncidenciaByOrigen(Empleado e);
-
+    public List<Incident> getIncidentByOrigin(Worker e);
 
     // Método para insertar un evento en la tabla historial.
     // Pasaremos como parámetro un objeto tipo evento, y no devolverá nada.
@@ -50,12 +42,12 @@ public interface DAOInterface {
     // 1) Cuando un usuario hace login
     // 2) Cuando un usuario crea una incidencia de tipo urgente
     // 3) Cuando se consultan las incidencias destinadas a un usuario
-    public void insertarEvento(Evento e);
+    public void insertEvent(Event e);
 
     // Obtener la fecha-hora del último inicio de sesión para un empleado.
-    public Evento getUltimoInicioSesion(Empleado e);
+    public Event getLastLogin(Worker e);
 
     // Obtener el ranking de los empleados por cantidad de incidencias
     // urgentes creadas (más incidencias urgentes primero).
-    public List<RankingTO> getRankingEmpleados();
+    public List<RankingTO> getRankingWorkers();
 }

@@ -7,10 +7,10 @@ package com.mycompany.rethinkdb.model;
  */
 public class RankingTO {
 
-    private Empleado worker;
+    private Worker worker;
     private int numberOfUrgentIncidents;
 
-    public RankingTO(Empleado worker, int numberOfUrgentIncidents) {
+    public RankingTO(Worker worker, int numberOfUrgentIncidents) {
         this.worker = worker;
         this.numberOfUrgentIncidents = numberOfUrgentIncidents;
     }
