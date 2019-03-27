@@ -2,7 +2,6 @@
 package com.mycompany.rethinkdb.model;
 
 import java.time.OffsetDateTime;
-import java.util.Map;
 
 /**
  *

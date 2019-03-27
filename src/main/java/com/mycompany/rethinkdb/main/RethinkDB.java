@@ -1,11 +1,15 @@
 
 package com.mycompany.rethinkdb.main;
 
+import com.mycompany.rethinkdb.constants.EventType;
+import com.mycompany.rethinkdb.constants.UrgencyLevel;
+import com.mycompany.rethinkdb.model.Event;
 import com.mycompany.rethinkdb.model.Incident;
+import com.mycompany.rethinkdb.model.Worker;
 import com.mycompany.rethinkdb.persistence.DAO;
 
 import com.rethinkdb.gen.exc.ReqlError;
-import java.util.List;
+import java.time.OffsetDateTime;
 
 /**
  *
@@ -20,15 +24,16 @@ public class RethinkDB {
             DAO dao = DAO.getInstance();
             dao.connect();
 
-            List<Incident> is = dao.selectAllIncidents();
-            is.forEach((i) -> {
-                System.out.println(i);
-            });
+            Worker w = new Worker("denky", "123", "oscar", "rossello", OffsetDateTime.now());
+            Incident i = new Incident(4, w, w, "description", OffsetDateTime.now(), UrgencyLevel.URGENT);
+            Event e = new Event(4, w, EventType.URGENT_INCIDENT, OffsetDateTime.now());
 
             dao.disconnect();
 
         } catch (ReqlError e) {
-            System.out.println(e.getMessage());
+            e.printStackTrace();
+        } catch (RuntimeException e) {
+            e.printStackTrace();
         }
     }
 }

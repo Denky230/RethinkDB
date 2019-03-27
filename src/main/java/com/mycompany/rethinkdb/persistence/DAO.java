@@ -1,6 +1,7 @@
 
 package com.mycompany.rethinkdb.persistence;
 
+import com.mycompany.rethinkdb.constants.EventType;
 import com.mycompany.rethinkdb.constants.UrgencyLevel;
 import com.mycompany.rethinkdb.model.Worker;
 import com.mycompany.rethinkdb.model.Event;
@@ -16,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  *
@@ -37,25 +39,51 @@ public class DAO implements DAOInterface {
         return instance;
     }
 
+    /* --- WORKER --- */
+
     @Override public boolean loginWorker(String user, String pass) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+    public Worker getWorkerByUsername(String username) {
+        Worker worker = null;
+        try {
+            // Fetch Worker data from database
+            Cursor cursor = r.table("worker").filter(
+                    r.hashMap("username", username)
+            ).run(c);
+
+            // Fill Worker with database data
+            Map<String, Object> map = (Map<String, Object>) cursor.next();
+            worker = workerFromMap(map);
+
+        } catch (NoSuchElementException e) { }
+
+        return worker;
+    }
     @Override public void insertWorker(Worker w) {
+        // Make sure Worker is not already registered
+        if (getWorkerByUsername(w.getUsername()) != null)
+            // TO DO: Throw custom exception
+            throw new RuntimeException("User already registered");
+
         r.table("worker").insert(r.array(
                 r.hashMap("username", w.getUsername())
                     .with("password", w.getPassword())
                     .with("name", w.getName())
                     .with("surname", w.getSurname())
-                    .with("last_login", w.getLastLogin().toString())
+                    .with("lastLogin", w.getLastLogin().toString())
         )).run(c);
     }
     @Override public void updateWorker(Worker w) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     @Override public void removeWorker(Worker w) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        // Delete Worker from database
+        r.table("worker").filter(
+                r.hashMap("username", w.getUsername())
+        ).delete().run(c);
     }
-    private Worker workerFromMap(HashMap<String, Object>  map) {
+    private Worker workerFromMap(Map<String, Object>  map) {
         return new Worker(
                 map.get("username").toString(),
                 map.get("password").toString(),
@@ -65,6 +93,22 @@ public class DAO implements DAOInterface {
         );
     }
 
+    /* --- INCIDENT --- */
+
+    @Override public List<Incident> selectAllIncidents() {
+        // Fetch Incidents data from database
+        Cursor cursor = r.table("incident").run(c);
+
+        // Parse each Incident found + add to list
+        List<Incident> incidents = new ArrayList<>();
+        cursor.forEach((i) -> {
+            Map<String, Object> map = (Map<String, Object>) i;
+            Incident incident = incidentFromMap(map);
+            incidents.add(incident);
+        });
+
+        return incidents;
+    }
     @Override public Incident getIncidentById(int id) {
         // Fetch Incident data from database
         Cursor cursor = r.table("incident").filter(
@@ -77,11 +121,30 @@ public class DAO implements DAOInterface {
 
         return incident;
     }
-    @Override public List<Incident> selectAllIncidents() {
-        List<Incident> incidents = new ArrayList<>();
+    @Override public List<Incident> getIncidentByDestination(Worker w) {
+        // Fetch Incidents data from database
+        Cursor cursor = r.table("incident").filter(
+            incident -> incident.g("destination").g("username").eq(w.getUsername())
+        ).run(c);
 
         // Parse each Incident found + add to list
-        Cursor cursor = r.table("incident").run(c);
+        List<Incident> incidents = new ArrayList<>();
+        cursor.forEach((i) -> {
+            Map<String, Object> map = (Map<String, Object>) i;
+            Incident incident = incidentFromMap(map);
+            incidents.add(incident);
+        });
+
+        return incidents;
+    }
+    @Override public List<Incident> getIncidentByOrigin(Worker w) {
+        // Fetch Incidents data from database
+        Cursor cursor = r.table("incident").filter(
+            incident -> incident.g("origin").g("username").eq(w.getUsername())
+        ).run(c);
+
+        // Parse each Incident found + add to list
+        List<Incident> incidents = new ArrayList<>();
         cursor.forEach((i) -> {
             Map<String, Object> map = (Map<String, Object>) i;
             Incident incident = incidentFromMap(map);
@@ -96,15 +159,9 @@ public class DAO implements DAOInterface {
                     .with("origin", i.getOrigin())
                     .with("destination", i.getDestination())
                     .with("description", i.getDescription())
-                    .with("date_submit", i.getDate().toString())
+                    .with("dateSubmit", i.getDate().toString())
                     .with("urgency", i.getUrgency().name())
         )).run(c);
-    }
-    @Override public List<Incident> getIncidentByDestination(Worker w) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-    @Override public List<Incident> getIncidentByOrigin(Worker w) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     private Incident incidentFromMap(Map<String, Object> map) {
         return new Incident(
@@ -112,24 +169,73 @@ public class DAO implements DAOInterface {
                 workerFromMap((HashMap) map.get("origin")),
                 workerFromMap((HashMap) map.get("destination")),
                 map.get("description").toString(),
-                OffsetDateTime.parse(map.get("date_submit").toString()),
+                OffsetDateTime.parse(map.get("dateSubmit").toString()),
                 UrgencyLevel.valueOf(map.get("urgency").toString())
         );
     }
 
-    @Override public void insertEvent(Event e) {}
-    @Override public Event getLastLogin(Worker w) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    /* --- EVENT --- */
+
+    @Override public void insertEvent(Event e) {
+        r.table("event").insert(r.array(
+                r.hashMap("id", e.getId())
+                    .with("worker", e.getWorker())
+                    .with("type", e.getType().name())
+                    .with("date", e.getDate().toString())
+        )).run(c);
     }
+    @Override public Event getLastLogin(Worker w) {
+        // Fetch Event data from database
+        Map<String, Object> map = r.table("event").orderBy().optArg(
+                "index", r.desc("worker_lastLogin")
+        ).nth(0).run(c);
+
+        // Fill Event with database data
+        Event event = eventFromMap(map);
+
+        return event;
+    }
+    private List<Event> getEventsByType(EventType type) {
+        // Fetch Events data from database
+        Cursor cursor = r.table("event").filter(
+            event -> event.g("type").eq(type.name())
+        ).run(c);
+
+        // Parse each Event found + add to list
+        List<Event> events = new ArrayList<>();
+        cursor.forEach((e) -> {
+            Map<String, Object> map = (Map<String, Object>) e;
+            Event event = eventFromMap(map);
+            events.add(event);
+        });
+
+        return events;
+    }
+    private Event eventFromMap(Map<String, Object> map) {
+        return new Event(
+                Integer.parseInt(map.get("id").toString()),
+                workerFromMap((HashMap) map.get("worker")),
+                EventType.valueOf(map.get("type").toString()),
+                OffsetDateTime.parse(map.get("date").toString())
+        );
+    }
+
     @Override public List<RankingTO> getRankingWorkers() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        List<RankingTO> ranking = new ArrayList<>();
+        List<Event> events = getEventsByType(EventType.URGENT_INCIDENT);
+
+        // TO DO: Sort by Worker urgency events
+
+        return ranking;
     }
 
     private void createDatabaseStructure() {
         // Create tables
         r.tableCreate("worker").run(c);
         r.tableCreate("incident").run(c);
-        r.tableCreate("record").run(c);
+        r.tableCreate("event").run(c);
+        // Create index on Worker -> lastLogin so it's easier to access
+        r.table("event").indexCreate("worker_lastLogin", row -> row.g("worker").g("lastLogin")).run(c);
     }
     public void connect() {
         this.c = r.connection().hostname("localhost").port(28015).db(DATABASE).connect();
